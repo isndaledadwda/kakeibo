@@ -178,7 +178,7 @@ body {
       <option value="pending">待评价</option>
       <option value="good">✓ 值得</option>
       <option value="ok">△ 一般</option>
-      <option value="bad">✕ 不该花</option>
+      <option value="bad">✕ 可以省</option>
     </select>
   </div>
   <div id="log-content"></div>
@@ -358,7 +358,10 @@ function importData(event) {
   event.target.value = '';
 }
 
-function todayStr() { return new Date().toISOString().slice(0,10); }
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 function formatDate(str) {
   const parts = str.split('-');
@@ -462,7 +465,7 @@ function badgeHtml(e) {
   if (e.cat === '固定費') return '<span class="badge badge-special" style="background:#EEF0F5;color:#555">固定費</span>';
   if (e.rating === 'good') return '<span class="badge badge-good">✓ 值得</span>';
   if (e.rating === 'ok') return '<span class="badge badge-ok">△ 一般</span>';
-  if (e.rating === 'bad') return '<span class="badge badge-bad">✕ 不该花</span>';
+  if (e.rating === 'bad') return '<span class="badge badge-bad">✕ 可以省</span>';
   return '<span class="badge badge-pending">待评价</span>';
 }
 
@@ -510,7 +513,7 @@ function renderLog() {
         ${(e.cat !== '特别支出' && e.cat !== '固定費') ? `<div class="rating-row">
           <div class="${rClass(e,'good')}" onclick="setRating(${e.id},'good')">✓ 值得</div>
           <div class="${rClass(e,'ok')}" onclick="setRating(${e.id},'ok')">△ 一般</div>
-          <div class="${rClass(e,'bad')}" onclick="setRating(${e.id},'bad')">✕ 不该花</div>
+          <div class="${rClass(e,'bad')}" onclick="setRating(${e.id},'bad')">✕ 可以省</div>
         </div>` : ''}
       </div>`;
     });
