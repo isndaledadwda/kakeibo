@@ -431,6 +431,7 @@ function deleteEntry(id) {
   updatePendingDot();
   renderLog();
   renderSummary();
+  gasDelete(id).catch(() => {});
 }
 
 function badgeHtml(e) {
