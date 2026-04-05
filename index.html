@@ -226,30 +226,69 @@ function setSyncStatus(msg, color) {
   if (el) { el.textContent = msg; el.style.color = color || 'var(--ink-faint)'; }
 }
 
+function jsonp(params) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now();
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      script.remove();
+      reject(new Error('timeout'));
+    }, 10000);
+    window[cbName] = (data) => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      script.remove();
+      resolve(data);
+    };
+    const qs = Object.entries({...params, callback: cbName})
+      .map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+    const script = document.createElement('script');
+    script.src = GAS_URL + '?' + qs;
+    script.onerror = () => { clearTimeout(timeout); delete window[cbName]; reject(new Error('load error')); };
+    document.head.appendChild(script);
+  });
+}
+
+async function gasAdd(entry) {
+  return jsonp({ action: 'add', entry: JSON.stringify(entry) });
+}
+
+async function gasRate(id, rating) {
+  return jsonp({ action: 'rate', id, rating: rating || '' });
+}
+
+async function gasDelete(id) {
+  return jsonp({ action: 'delete', id });
+}
+
 async function syncToCloud() {
   if (syncing) return;
   syncing = true;
   setSyncStatus('同步中…', 'var(--gold)');
   try {
-    // push local to cloud
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'sync', entries })
-    });
-    const result = await res.json();
-    // pull from cloud
-    const res2 = await fetch(GAS_URL);
-    const data = await res2.json();
-    if (data.entries && data.entries.length > 0) {
-      const ids = new Set(entries.map(x => String(x.id)));
-      let added = 0;
-      data.entries.forEach(e => {
-        if (!ids.has(String(e.id))) { entries.push(e); added++; }
-        else {
-          const local = entries.find(x => String(x.id) === String(e.id));
-          if (local && e.rating && !local.rating) local.rating = e.rating;
+    const data = await jsonp({ action: 'getAll' });
+    if (data.entries) {
+      const cloudIds = new Set(data.entries.map(e => String(e.id)));
+      const localIds = new Set(entries.map(e => String(e.id)));
+      // push local entries not in cloud
+      for (const entry of entries) {
+        if (!cloudIds.has(String(entry.id))) {
+          await gasAdd(entry);
         }
-      });
+      }
+      // pull cloud entries not in local
+      let added = 0;
+      for (const ce of data.entries) {
+        if (!localIds.has(String(ce.id))) {
+          entries.push({ ...ce, amount: Number(ce.amount) });
+          added++;
+        } else {
+          const local = entries.find(x => String(x.id) === String(ce.id));
+          if (local && ce.rating && !local.rating) {
+            local.rating = ce.rating;
+          }
+        }
+      }
       save();
       if (added > 0) { populateMonths(); updatePendingDot(); renderLog(); renderSummary(); }
     }
@@ -357,7 +396,8 @@ function addEntry() {
   const cat = document.getElementById('inp-cat').value;
   const note = document.getElementById('inp-note').value.trim();
   if (!date || !amount || amount <= 0) { alert('日付と金額を入力してください'); return; }
-  entries.push({ id: Date.now(), date, amount, cat, note, rating: '' });
+  const newEntry = { id: Date.now(), date, amount, cat, note, rating: '' };
+  entries.push(newEntry);
   save();
   document.getElementById('inp-amount').value = '';
   document.getElementById('inp-note').value = '';
@@ -366,7 +406,11 @@ function addEntry() {
   renderLog();
   renderSummary();
   showPage('log');
-  syncToCloud();
+  setSyncStatus('同步中…', 'var(--gold)');
+  gasAdd(newEntry).then(() => {
+    setSyncStatus('同步完了 ✓', 'var(--good)');
+    setTimeout(() => setSyncStatus(''), 3000);
+  }).catch(() => setSyncStatus('オフライン', 'var(--ink-faint)'));
 }
 
 function setRating(id, r) {
@@ -377,7 +421,7 @@ function setRating(id, r) {
   updatePendingDot();
   renderLog();
   renderSummary();
-  syncToCloud();
+  gasRate(e.id, e.rating).catch(() => {});
 }
 
 function deleteEntry(id) {
