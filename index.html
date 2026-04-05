@@ -155,6 +155,7 @@ body {
         <option value="美容护理">美容 / 个人护理</option>
         <option value="娱乐爱好">娱乐 / 爱好</option>
         <option value="其他">其他</option>
+        <option value="固定費">固定費</option>
         <option value="特别支出">✦ 特别支出</option>
       </select>
     </div>
@@ -456,6 +457,7 @@ function deleteEntry(id) {
 
 function badgeHtml(e) {
   if (e.cat === '特别支出') return '<span class="badge badge-special">特别支出</span>';
+  if (e.cat === '固定費') return '<span class="badge badge-special" style="background:#EEF0F5;color:#555">固定費</span>';
   if (e.rating === 'good') return '<span class="badge badge-good">✓ 值得</span>';
   if (e.rating === 'ok') return '<span class="badge badge-ok">△ 一般</span>';
   if (e.rating === 'bad') return '<span class="badge badge-bad">✕ 不该花</span>';
@@ -503,7 +505,7 @@ function renderLog() {
             <button class="del-btn" onclick="deleteEntry(${e.id})">削除</button>
           </div>
         </div>
-        ${e.cat !== '特别支出' ? `<div class="rating-row">
+        ${(e.cat !== '特别支出' && e.cat !== '固定費') ? `<div class="rating-row">
           <div class="${rClass(e,'good')}" onclick="setRating(${e.id},'good')">✓ 值得</div>
           <div class="${rClass(e,'ok')}" onclick="setRating(${e.id},'ok')">△ 一般</div>
           <div class="${rClass(e,'bad')}" onclick="setRating(${e.id},'bad')">✕ 不该花</div>
@@ -530,7 +532,7 @@ function renderSummary() {
   document.getElementById('sum-metrics').innerHTML = `
     <div class="metric"><div class="metric-label">日常支出</div><div class="metric-val">¥${totalDaily.toLocaleString()}</div></div>
     <div class="metric"><div class="metric-label">特别支出</div><div class="metric-val">¥${totalSpecial.toLocaleString()}</div></div>
-    <div class="metric"><div class="metric-label">不该花的钱</div><div class="metric-val danger">¥${totalBad.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">可以省下的钱</div><div class="metric-val danger">¥${totalBad.toLocaleString()}</div></div>
     <div class="metric"><div class="metric-label">待评价</div><div class="metric-val" style="color:var(--ink-faint);font-size:16px">${pending.length} 件</div></div>
   `;
 
@@ -547,8 +549,8 @@ function renderSummary() {
   if (sorted.length) catHtml += `<div class="sum-row"><span>合計</span><span>¥${totalDaily.toLocaleString()}</span></div>`;
   document.getElementById('sum-cats').innerHTML = catHtml;
 
-  let regretHtml = '<div class="section-title">不该花的钱</div>';
-  if (!bad.length) regretHtml += '<div class="empty" style="padding:1rem 0">今月は「不该花」の支出はありません 🌿</div>';
+  let regretHtml = '<div class="section-title">可以省下的钱</div>';
+  if (!bad.length) regretHtml += '<div class="empty" style="padding:1rem 0">今月は節約できました 🌿</div>';
   bad.forEach(e => {
     regretHtml += `<div class="sum-row"><span class="sum-cat">${e.cat}${e.note ? ' · ' + e.note : ''}</span><span style="color:var(--bad)">¥${e.amount.toLocaleString()}</span></div>`;
   });
