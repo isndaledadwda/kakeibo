@@ -361,9 +361,11 @@ function importData(event) {
 function todayStr() { return new Date().toISOString().slice(0,10); }
 
 function formatDate(str) {
-  const d = new Date(str + 'T00:00:00');
+  const parts = str.split('-');
+  const y = parseInt(parts[0]), m = parseInt(parts[1]), d = parseInt(parts[2]);
   const days = ['日','月','火','水','木','金','土'];
-  return `${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）`;
+  const day = new Date(y, m-1, d).getDay();
+  return `${m}月${d}日（${days[day]}）`;
 }
 
 function formatMonth(m) {
