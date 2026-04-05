@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家計簿 · 日々の記録</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500&family=Zen+Kurenaido&family=Kaisei+Decol:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #F5F0E8;
+  --cream-dark: #EDE6D6;
+  --ink: #2C2416;
+  --ink-light: #6B5E4A;
+  --ink-faint: #A8997F;
+  --rust: #B5622A;
+  --sage: #6B8C6A;
+  --gold: #C4963A;
+  --paper: #FAF6ED;
+  --paper-shadow: #E8E0CC;
+  --good: #5A7A59;
+  --good-bg: #EBF2EB;
+  --ok: #8A7030;
+  --ok-bg: #F5EDD8;
+  --bad: #8C3A2A;
+  --bad-bg: #F5E8E5;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background-color: var(--cream);
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(139,124,100,0.08) 27px, rgba(139,124,100,0.08) 28px),
+    repeating-linear-gradient(90deg, transparent, transparent 27px, rgba(139,124,100,0.04) 27px, rgba(139,124,100,0.04) 28px);
+  min-height: 100vh;
+  font-family: 'Noto Serif JP', serif;
+  color: var(--ink);
+}
+.app { max-width: 480px; margin: 0 auto; padding: 0 0 100px; }
+.header { padding: 2rem 1.5rem 1rem; text-align: center; }
+.header-deco { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6px; }
+.header-line { height: 0.5px; flex: 1; background: var(--ink-faint); }
+.header h1 { font-family: 'Kaisei Decol', serif; font-size: 26px; font-weight: 400; letter-spacing: 0.12em; }
+.header-sub { font-family: 'Zen Kurenaido', sans-serif; font-size: 11px; letter-spacing: 0.25em; color: var(--ink-faint); margin-top: 4px; }
+.today-str { font-size: 11px; color: var(--ink-faint); margin-top: 10px; letter-spacing: 0.1em; }
+.nav { display: flex; margin: 0 1rem 1.5rem; background: var(--paper-shadow); border-radius: 12px; padding: 3px; }
+.nav-btn { flex: 1; padding: 8px 4px; font-family: 'Noto Serif JP', serif; font-size: 12px; letter-spacing: 0.06em; border: none; background: none; color: var(--ink-faint); cursor: pointer; border-radius: 10px; transition: all 0.25s; position: relative; }
+.nav-btn.active { background: var(--paper); color: var(--ink); box-shadow: 0 1px 4px rgba(44,36,22,0.12); }
+.pending-dot { position: absolute; top: 4px; right: 6px; width: 7px; height: 7px; background: var(--rust); border-radius: 50%; display: none; }
+.pending-dot.show { display: block; }
+.page { display: none; padding: 0 1rem; }
+.page.active { display: block; }
+.card { background: var(--paper); border: 0.5px solid var(--paper-shadow); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; position: relative; box-shadow: 0 2px 8px rgba(44,36,22,0.05); }
+.card::before { content: ''; position: absolute; top: 10px; left: -2px; width: 4px; height: 24px; background: var(--rust); border-radius: 0 2px 2px 0; opacity: 0.6; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 10px; letter-spacing: 0.2em; color: var(--ink-faint); margin-bottom: 5px; }
+.field input, .field select, .field textarea { width: 100%; background: var(--cream); border: 0.5px solid var(--paper-shadow); border-radius: 8px; padding: 9px 12px; font-family: 'Noto Serif JP', serif; font-size: 14px; color: var(--ink); outline: none; transition: border-color 0.2s; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--rust); }
+.field textarea { resize: none; height: 60px; }
+.submit-btn { width: 100%; padding: 12px; background: var(--ink); color: var(--paper); border: none; border-radius: 8px; font-family: 'Noto Serif JP', serif; font-size: 13px; letter-spacing: 0.15em; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+.submit-btn:hover { background: var(--rust); }
+.submit-btn:active { transform: scale(0.98); }
+.field-hint { font-size: 10px; color: var(--ink-faint); text-align: center; margin-top: 8px; letter-spacing: 0.08em; }
+.filters { display: flex; gap: 6px; margin-bottom: 1rem; }
+.filters select { flex: 1; background: var(--paper); border: 0.5px solid var(--paper-shadow); border-radius: 8px; padding: 7px 10px; font-family: 'Noto Serif JP', serif; font-size: 12px; color: var(--ink); outline: none; }
+.day-header { display: flex; align-items: baseline; gap: 8px; margin: 16px 0 6px; }
+.day-date { font-family: 'Kaisei Decol', serif; font-size: 16px; color: var(--ink); }
+.day-total { font-size: 11px; color: var(--ink-faint); letter-spacing: 0.05em; }
+.entry { border-bottom: 0.5px solid var(--cream-dark); padding: 10px 0; }
+.entry:last-child { border-bottom: none; }
+.entry-top { display: flex; align-items: flex-start; gap: 8px; }
+.entry-meta { flex: 1; }
+.entry-cat { font-size: 11px; color: var(--ink-faint); letter-spacing: 0.08em; margin-bottom: 2px; }
+.entry-note { font-size: 13px; color: var(--ink); line-height: 1.5; }
+.entry-amount { font-family: 'Kaisei Decol', serif; font-size: 16px; color: var(--ink); text-align: right; white-space: nowrap; }
+.del-btn { font-size: 10px; color: var(--ink-faint); border: none; background: none; cursor: pointer; letter-spacing: 0.05em; padding: 2px 0; display: block; margin-top: 2px; text-align: right; }
+.del-btn:hover { color: var(--bad); }
+.badge { display: inline-block; font-size: 10px; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 20px; margin-top: 5px; }
+.badge-good { background: var(--good-bg); color: var(--good); }
+.badge-ok { background: var(--ok-bg); color: var(--ok); }
+.badge-bad { background: var(--bad-bg); color: var(--bad); }
+.badge-pending { background: var(--cream-dark); color: var(--ink-faint); }
+.badge-special { background: #EBF0F5; color: #3A5A78; }
+.rating-row { display: flex; gap: 5px; margin-top: 8px; }
+.r-btn { flex: 1; padding: 5px 4px; border: 0.5px solid var(--paper-shadow); border-radius: 6px; font-family: 'Noto Serif JP', serif; font-size: 11px; cursor: pointer; background: var(--cream); color: var(--ink-light); text-align: center; transition: all 0.15s; }
+.r-btn.sel-good { background: var(--good-bg); color: var(--good); border-color: var(--good); }
+.r-btn.sel-ok { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+.r-btn.sel-bad { background: var(--bad-bg); color: var(--bad); border-color: var(--bad); }
+.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+.metric { background: var(--paper); border: 0.5px solid var(--paper-shadow); border-radius: 10px; padding: 14px 12px; text-align: center; }
+.metric-label { font-size: 10px; letter-spacing: 0.12em; color: var(--ink-faint); margin-bottom: 6px; }
+.metric-val { font-family: 'Kaisei Decol', serif; font-size: 20px; color: var(--ink); }
+.metric-val.danger { color: var(--bad); }
+.section-title { font-size: 10px; letter-spacing: 0.2em; color: var(--ink-faint); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.section-title::after { content: ''; flex: 1; height: 0.5px; background: var(--paper-shadow); }
+.sum-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 13px; border-bottom: 0.5px solid var(--cream-dark); }
+.sum-row:last-child { border-bottom: none; font-weight: 500; }
+.sum-cat { color: var(--ink-light); }
+.sum-pct { font-size: 10px; color: var(--ink-faint); margin-left: 4px; }
+.empty { text-align: center; padding: 2.5rem 0; color: var(--ink-faint); font-size: 12px; letter-spacing: 0.1em; }
+.leaf-deco { text-align: center; color: var(--sage); font-size: 14px; opacity: 0.5; margin: 8px 0; letter-spacing: 8px; }
+.special-label { font-size: 10px; color: #3A5A78; background: #EBF0F5; padding: 1px 7px; border-radius: 10px; display: inline-block; margin-bottom: 3px; }
+
+/* Backup section */
+.backup-card { background: var(--paper); border: 0.5px solid var(--paper-shadow); border-radius: 12px; padding: 1.25rem; margin: 0 1rem 1rem; }
+.backup-card::before { display: none; }
+.backup-title { font-size: 10px; letter-spacing: 0.2em; color: var(--ink-faint); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.backup-title::after { content: ''; flex: 1; height: 0.5px; background: var(--paper-shadow); }
+.backup-btns { display: flex; gap: 8px; }
+.backup-btn { flex: 1; padding: 9px 8px; border: 0.5px solid var(--paper-shadow); border-radius: 8px; font-family: 'Noto Serif JP', serif; font-size: 12px; letter-spacing: 0.08em; cursor: pointer; background: var(--cream); color: var(--ink-light); text-align: center; transition: all 0.2s; }
+.backup-btn:hover { border-color: var(--rust); color: var(--rust); }
+.backup-btn:active { transform: scale(0.98); }
+.backup-hint { font-size: 10px; color: var(--ink-faint); margin-top: 8px; line-height: 1.6; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="header">
+  <div class="header-deco">
+    <div class="header-line"></div>
+    <span style="color:var(--sage);font-size:16px">🌿</span>
+    <div class="header-line"></div>
+  </div>
+  <h1>家計簿</h1>
+  <div class="header-sub">日々の記録</div>
+  <div class="today-str" id="today-str"></div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('add')" id="nav-add">記録する</button>
+  <button class="nav-btn" onclick="showPage('log')" id="nav-log">
+    明細<span class="pending-dot" id="pending-dot"></span>
+  </button>
+  <button class="nav-btn" onclick="showPage('summary')" id="nav-summary">月まとめ</button>
+</nav>
+
+<!-- ADD -->
+<div class="page active" id="page-add">
+  <div class="card">
+    <div class="field">
+      <label>日付</label>
+      <input type="date" id="inp-date">
+    </div>
+    <div class="field">
+      <label>金額（円）</label>
+      <input type="number" id="inp-amount" placeholder="0" min="0">
+    </div>
+    <div class="field">
+      <label>分類</label>
+      <select id="inp-cat">
+        <option value="外食">食費 · 外食</option>
+        <option value="自炊">食費 · 自炊</option>
+        <option value="交通">交通費</option>
+        <option value="宠物">宠物費</option>
+        <option value="家居日用">家居日用</option>
+        <option value="美容护理">美容 / 个人护理</option>
+        <option value="娱乐爱好">娱乐 / 爱好</option>
+        <option value="其他">其他</option>
+        <option value="特别支出">✦ 特别支出</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>备注</label>
+      <textarea id="inp-note" placeholder="买了什么？在哪里？"></textarea>
+    </div>
+    <button class="submit-btn" onclick="addEntry()">記録する</button>
+    <div class="field-hint">评价可以之后回顾时再打分</div>
+  </div>
+  <div class="leaf-deco">· · ·</div>
+</div>
+
+<!-- LOG -->
+<div class="page" id="page-log">
+  <div class="filters">
+    <select id="filter-month" onchange="renderLog()"></select>
+    <select id="filter-rating" onchange="renderLog()">
+      <option value="">全部记录</option>
+      <option value="pending">待评价</option>
+      <option value="good">✓ 值得</option>
+      <option value="ok">△ 一般</option>
+      <option value="bad">✕ 不该花</option>
+    </select>
+  </div>
+  <div id="log-content"></div>
+</div>
+
+<!-- SUMMARY -->
+<div class="page" id="page-summary">
+  <select id="sum-month" style="width:100%;background:var(--paper);border:0.5px solid var(--paper-shadow);border-radius:8px;padding:8px 12px;font-family:'Noto Serif JP',serif;font-size:13px;color:var(--ink);margin-bottom:1rem;outline:none;" onchange="renderSummary()"></select>
+  <div class="metrics-grid" id="sum-metrics"></div>
+  <div class="card" id="sum-cats"></div>
+  <div class="card" id="sum-regret"></div>
+</div>
+
+</div>
+
+<!-- BACKUP BAR (always visible at bottom) -->
+<div style="position:fixed;bottom:0;left:0;right:0;background:var(--cream);border-top:0.5px solid var(--paper-shadow);padding:10px 1rem 12px;max-width:480px;margin:0 auto;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div style="font-size:10px;letter-spacing:0.15em;color:var(--ink-faint);">データのバックアップ</div>
+    <div id="sync-status" style="font-size:10px;letter-spacing:0.08em;color:var(--ink-faint);"></div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="backup-btn" onclick="syncToCloud()">クラウド同期</button>
+    <button class="backup-btn" onclick="exportData()">导出备份</button>
+    <label class="backup-btn" style="cursor:pointer;">
+      导入数据
+      <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+    </label>
+  </div>
+</div>
+
+<script>
+let entries = [];
+const STORE_KEY = 'kakeibo_v3';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwD_x2i3kO0JToLyn2L767OcXOAq9dvRlKeSpWDpvgpVFSn1kGfjNJRA_oFA7TgjSt4/exec';
+
+let syncing = false;
+
+function load() {
+  try { entries = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { entries = []; }
+}
+function save() { localStorage.setItem(STORE_KEY, JSON.stringify(entries)); }
+
+function setSyncStatus(msg, color) {
+  const el = document.getElementById('sync-status');
+  if (el) { el.textContent = msg; el.style.color = color || 'var(--ink-faint)'; }
+}
+
+async function syncToCloud() {
+  if (syncing) return;
+  syncing = true;
+  setSyncStatus('同步中…', 'var(--gold)');
+  try {
+    // push local to cloud
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'sync', entries })
+    });
+    const result = await res.json();
+    // pull from cloud
+    const res2 = await fetch(GAS_URL);
+    const data = await res2.json();
+    if (data.entries && data.entries.length > 0) {
+      const ids = new Set(entries.map(x => String(x.id)));
+      let added = 0;
+      data.entries.forEach(e => {
+        if (!ids.has(String(e.id))) { entries.push(e); added++; }
+        else {
+          const local = entries.find(x => String(x.id) === String(e.id));
+          if (local && e.rating && !local.rating) local.rating = e.rating;
+        }
+      });
+      save();
+      if (added > 0) { populateMonths(); updatePendingDot(); renderLog(); renderSummary(); }
+    }
+    setSyncStatus('同步完了 ✓', 'var(--good)');
+    setTimeout(() => setSyncStatus(''), 3000);
+  } catch(e) {
+    setSyncStatus('オフライン', 'var(--ink-faint)');
+  }
+  syncing = false;
+}
+
+function exportData() {
+  const data = { version: 1, exported: new Date().toISOString(), entries };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = url;
+  a.download = `kakeibo_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const imported = data.entries || data;
+      if (!Array.isArray(imported)) { alert('ファイルの形式が正しくありません'); return; }
+      const existing = entries.length;
+      const ids = new Set(entries.map(x => x.id));
+      let added = 0;
+      imported.forEach(entry => {
+        if (!ids.has(entry.id)) { entries.push(entry); added++; }
+      });
+      save();
+      populateMonths();
+      updatePendingDot();
+      renderLog();
+      renderSummary();
+      alert(`インポート完了\n既存: ${existing}件 / 新規追加: ${added}件`);
+    } catch(err) {
+      alert('読み込みに失敗しました');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function formatDate(str) {
+  const d = new Date(str + 'T00:00:00');
+  const days = ['日','月','火','水','木','金','土'];
+  return `${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）`;
+}
+
+function formatMonth(m) {
+  const [y, mo] = m.split('-');
+  return `${y}年 ${parseInt(mo)}月`;
+}
+
+function init() {
+  document.getElementById('inp-date').value = todayStr();
+  const now = new Date();
+  const days = ['日','月','火','水','木','金','土'];
+  document.getElementById('today-str').textContent =
+    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${days[now.getDay()]}）`;
+  populateMonths();
+  updatePendingDot();
+  renderLog();
+  renderSummary();
+}
+
+function populateMonths() {
+  const months = new Set();
+  entries.forEach(e => months.add(e.date.slice(0,7)));
+  months.add(new Date().toISOString().slice(0,7));
+  const sorted = [...months].sort().reverse();
+  ['filter-month','sum-month'].forEach(id => {
+    const el = document.getElementById(id);
+    const prev = el.value;
+    el.innerHTML = '';
+    sorted.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m; opt.textContent = formatMonth(m);
+      el.appendChild(opt);
+    });
+    if (prev && sorted.includes(prev)) el.value = prev;
+  });
+}
+
+function updatePendingDot() {
+  const cur = new Date().toISOString().slice(0,7);
+  const count = entries.filter(e => e.date.startsWith(cur) && !e.rating && e.cat !== '特别支出').length;
+  document.getElementById('pending-dot').classList.toggle('show', count > 0);
+}
+
+function addEntry() {
+  const date = document.getElementById('inp-date').value;
+  const amount = parseInt(document.getElementById('inp-amount').value);
+  const cat = document.getElementById('inp-cat').value;
+  const note = document.getElementById('inp-note').value.trim();
+  if (!date || !amount || amount <= 0) { alert('日付と金額を入力してください'); return; }
+  entries.push({ id: Date.now(), date, amount, cat, note, rating: '' });
+  save();
+  document.getElementById('inp-amount').value = '';
+  document.getElementById('inp-note').value = '';
+  populateMonths();
+  updatePendingDot();
+  renderLog();
+  renderSummary();
+  showPage('log');
+  syncToCloud();
+}
+
+function setRating(id, r) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  e.rating = e.rating === r ? '' : r;
+  save();
+  updatePendingDot();
+  renderLog();
+  renderSummary();
+  syncToCloud();
+}
+
+function deleteEntry(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  entries = entries.filter(e => e.id !== id);
+  save();
+  updatePendingDot();
+  renderLog();
+  renderSummary();
+}
+
+function badgeHtml(e) {
+  if (e.cat === '特别支出') return '<span class="badge badge-special">特别支出</span>';
+  if (e.rating === 'good') return '<span class="badge badge-good">✓ 值得</span>';
+  if (e.rating === 'ok') return '<span class="badge badge-ok">△ 一般</span>';
+  if (e.rating === 'bad') return '<span class="badge badge-bad">✕ 不该花</span>';
+  return '<span class="badge badge-pending">待评价</span>';
+}
+
+function rClass(e, r) {
+  return 'r-btn' + (e.rating === r ? ' sel-' + r : '');
+}
+
+function renderLog() {
+  const month = document.getElementById('filter-month').value;
+  const fr = document.getElementById('filter-rating').value;
+  let data = entries.filter(e => e.date.startsWith(month));
+  if (fr === 'pending') data = data.filter(e => !e.rating && e.cat !== '特别支出');
+  else if (fr) data = data.filter(e => e.rating === fr);
+  data.sort((a,b) => b.date.localeCompare(a.date) || b.id - a.id);
+
+  const byDay = {};
+  data.forEach(e => { if (!byDay[e.date]) byDay[e.date] = []; byDay[e.date].push(e); });
+
+  const cont = document.getElementById('log-content');
+  if (!data.length) {
+    const msg = fr === 'pending' ? '✦ 今月の記録はすべて評価済みです' : '記録がありません';
+    cont.innerHTML = `<div class="empty">${msg}</div>`;
+    return;
+  }
+
+  let html = '';
+  Object.keys(byDay).sort().reverse().forEach(day => {
+    const dayTotal = byDay[day].reduce((s,e) => s+e.amount, 0);
+    html += `<div class="day-header"><span class="day-date">${formatDate(day)}</span><span class="day-total">¥${dayTotal.toLocaleString()}</span></div>`;
+    html += '<div class="card" style="padding:0.75rem 1.25rem">';
+    byDay[day].forEach(e => {
+      html += `<div class="entry">
+        <div class="entry-top">
+          <div class="entry-meta">
+            ${e.cat === '特别支出' ? '<span style="font-size:10px;color:#3A5A78;background:#EBF0F5;padding:1px 7px;border-radius:10px;display:inline-block;margin-bottom:3px;">特别支出</span><br>' : ''}
+            <div class="entry-cat">${e.cat !== '特别支出' ? e.cat : ''}</div>
+            <div class="entry-note">${e.note || '―'}</div>
+            ${badgeHtml(e)}
+          </div>
+          <div>
+            <div class="entry-amount">¥${e.amount.toLocaleString()}</div>
+            <button class="del-btn" onclick="deleteEntry(${e.id})">削除</button>
+          </div>
+        </div>
+        ${e.cat !== '特别支出' ? `<div class="rating-row">
+          <div class="${rClass(e,'good')}" onclick="setRating(${e.id},'good')">✓ 值得</div>
+          <div class="${rClass(e,'ok')}" onclick="setRating(${e.id},'ok')">△ 一般</div>
+          <div class="${rClass(e,'bad')}" onclick="setRating(${e.id},'bad')">✕ 不该花</div>
+        </div>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  });
+  cont.innerHTML = html;
+}
+
+function renderSummary() {
+  const month = document.getElementById('sum-month').value;
+  const data = entries.filter(e => e.date.startsWith(month));
+  const daily = data.filter(e => e.cat !== '特别支出');
+  const special = data.filter(e => e.cat === '特别支出');
+  const bad = data.filter(e => e.rating === 'bad');
+  const pending = data.filter(e => !e.rating && e.cat !== '特别支出');
+
+  const totalDaily = daily.reduce((s,e) => s+e.amount, 0);
+  const totalSpecial = special.reduce((s,e) => s+e.amount, 0);
+  const totalBad = bad.reduce((s,e) => s+e.amount, 0);
+
+  document.getElementById('sum-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">日常支出</div><div class="metric-val">¥${totalDaily.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">特别支出</div><div class="metric-val">¥${totalSpecial.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">不该花的钱</div><div class="metric-val danger">¥${totalBad.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">待评价</div><div class="metric-val" style="color:var(--ink-faint);font-size:16px">${pending.length} 件</div></div>
+  `;
+
+  const catTotals = {};
+  daily.forEach(e => { catTotals[e.cat] = (catTotals[e.cat]||0) + e.amount; });
+  const sorted = Object.entries(catTotals).sort((a,b) => b[1]-a[1]);
+
+  let catHtml = '<div class="section-title">分类明细</div>';
+  if (!sorted.length) catHtml += '<div class="empty" style="padding:1rem 0">記録がありません</div>';
+  sorted.forEach(([cat, amt]) => {
+    const pct = totalDaily > 0 ? Math.round(amt/totalDaily*100) : 0;
+    catHtml += `<div class="sum-row"><span class="sum-cat">${cat}</span><span>¥${amt.toLocaleString()}<span class="sum-pct">${pct}%</span></span></div>`;
+  });
+  if (sorted.length) catHtml += `<div class="sum-row"><span>合計</span><span>¥${totalDaily.toLocaleString()}</span></div>`;
+  document.getElementById('sum-cats').innerHTML = catHtml;
+
+  let regretHtml = '<div class="section-title">不该花的钱</div>';
+  if (!bad.length) regretHtml += '<div class="empty" style="padding:1rem 0">今月は「不该花」の支出はありません 🌿</div>';
+  bad.forEach(e => {
+    regretHtml += `<div class="sum-row"><span class="sum-cat">${e.cat}${e.note ? ' · ' + e.note : ''}</span><span style="color:var(--bad)">¥${e.amount.toLocaleString()}</span></div>`;
+  });
+  document.getElementById('sum-regret').innerHTML = regretHtml;
+}
+
+function showPage(p) {
+  ['add','log','summary'].forEach(x => {
+    document.getElementById('page-'+x).classList.toggle('active', x===p);
+    document.getElementById('nav-'+x).classList.toggle('active', x===p);
+  });
+  if (p === 'log') renderLog();
+}
+
+load();
+init();
+syncToCloud();
+</script>
+</body>
+</html>
