@@ -266,19 +266,35 @@ async function syncToCloud() {
   syncing = true;
   setSyncStatus('同步中…', 'var(--gold)');
   try {
+    const deletedIds = JSON.parse(localStorage.getItem(STORE_KEY + '_deleted') || '[]');
+    const deletedSet = new Set(deletedIds.map(String));
+
     const data = await jsonp({ action: 'getAll' });
     if (data.entries) {
       const cloudIds = new Set(data.entries.map(e => String(e.id)));
       const localIds = new Set(entries.map(e => String(e.id)));
-      // push local entries not in cloud
+
+      // push local entries not in cloud (and not deleted)
       for (const entry of entries) {
         if (!cloudIds.has(String(entry.id))) {
           await gasAdd(entry);
         }
       }
-      // pull cloud entries not in local
+
+      // pull cloud entries not in local, skip deleted ones
       let added = 0;
       for (const ce of data.entries) {
+        if (deletedSet.has(String(ce.id))) continue; // skip deleted
+        // fix date format from Sheets (might come as Date object string)
+        let dateStr = String(ce.date);
+        if (dateStr.includes('/')) {
+          const parts = dateStr.split('/');
+          dateStr = `${parts[2]}-${String(parts[0]).padStart(2,'0')}-${String(parts[1]).padStart(2,'0')}`;
+        } else if (dateStr.match(/^\w+ \w+ \d+/)) {
+          dateStr = new Date(dateStr).toISOString().slice(0,10);
+        }
+        ce.date = dateStr;
+
         if (!localIds.has(String(ce.id))) {
           entries.push({ ...ce, amount: Number(ce.amount) });
           added++;
@@ -428,6 +444,10 @@ function deleteEntry(id) {
   if (!confirm('この記録を削除しますか？')) return;
   entries = entries.filter(e => e.id !== id);
   save();
+  // track deleted IDs so sync doesn't pull them back
+  const deletedIds = JSON.parse(localStorage.getItem(STORE_KEY + '_deleted') || '[]');
+  deletedIds.push(String(id));
+  localStorage.setItem(STORE_KEY + '_deleted', JSON.stringify(deletedIds));
   updatePendingDot();
   renderLog();
   renderSummary();
