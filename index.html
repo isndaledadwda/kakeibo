@@ -286,15 +286,19 @@ async function syncToCloud() {
       let added = 0;
       for (const ce of data.entries) {
         if (deletedSet.has(String(ce.id))) continue; // skip deleted
-        // fix date format from Sheets (might come as Date object string)
+        // fix date format from Sheets
         let dateStr = String(ce.date);
         if (dateStr.includes('/')) {
           const parts = dateStr.split('/');
           dateStr = `${parts[2]}-${String(parts[0]).padStart(2,'0')}-${String(parts[1]).padStart(2,'0')}`;
         } else if (dateStr.match(/^\w+ \w+ \d+/)) {
-          dateStr = new Date(dateStr).toISOString().slice(0,10);
+          const tmp = new Date(dateStr);
+          dateStr = `${tmp.getFullYear()}-${String(tmp.getMonth()+1).padStart(2,'0')}-${String(tmp.getDate()).padStart(2,'0')}`;
         }
-        ce.date = dateStr;
+        // ensure YYYY-MM-DD format is preserved as-is (no UTC conversion)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          ce.date = dateStr;
+        }
 
         if (!localIds.has(String(ce.id))) {
           entries.push({ ...ce, amount: Number(ce.amount) });
