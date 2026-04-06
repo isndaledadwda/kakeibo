@@ -440,7 +440,7 @@ function addEntry() {
 }
 
 function setRating(id, r) {
-  const e = entries.find(x => x.id === id);
+  const e = entries.find(x => String(x.id) === String(id));
   if (!e) return;
   e.rating = e.rating === r ? '' : r;
   save();
@@ -452,7 +452,7 @@ function setRating(id, r) {
 
 function deleteEntry(id) {
   if (!confirm('この記録を削除しますか？')) return;
-  entries = entries.filter(e => e.id !== id);
+  entries = entries.filter(e => String(e.id) !== String(id));
   save();
   // track deleted IDs so sync doesn't pull them back
   const deletedIds = JSON.parse(localStorage.getItem(STORE_KEY + '_deleted') || '[]');
