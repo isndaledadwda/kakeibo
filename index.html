@@ -539,6 +539,9 @@ function renderSummary() {
   const bad = data.filter(e => e.rating === 'bad');
   const pending = data.filter(e => !e.rating && e.cat !== '特别支出');
 
+  const good = data.filter(e => e.rating === 'good');
+  const rated = data.filter(e => e.rating && e.cat !== '特别支出' && e.cat !== '固定費');
+
   const totalDaily = daily.reduce((s,e) => s+e.amount, 0);
   const totalSpecial = special.reduce((s,e) => s+e.amount, 0);
   const totalBad = bad.reduce((s,e) => s+e.amount, 0);
@@ -547,7 +550,7 @@ function renderSummary() {
     <div class="metric"><div class="metric-label">日常支出</div><div class="metric-val">¥${totalDaily.toLocaleString()}</div></div>
     <div class="metric"><div class="metric-label">特别支出</div><div class="metric-val">¥${totalSpecial.toLocaleString()}</div></div>
     <div class="metric"><div class="metric-label">可以省下的钱</div><div class="metric-val danger">¥${totalBad.toLocaleString()}</div></div>
-    <div class="metric"><div class="metric-label">待评价</div><div class="metric-val" style="color:var(--ink-faint);font-size:16px">${pending.length} 件</div></div>
+    <div class="metric"><div class="metric-label">Good Buy</div><div class="metric-val" style="color:var(--good);font-size:18px">${good.length} <span style="font-size:12px;color:var(--ink-faint)">/ ${rated.length} 件</span></div></div>
   `;
 
   const catTotals = {};
