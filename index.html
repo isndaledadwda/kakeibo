@@ -155,6 +155,8 @@ body {
         <option value="美容护理">美容 / 个人护理</option>
         <option value="娱乐爱好">娱乐 / 爱好</option>
         <option value="其他">其他</option>
+        <option value="自我投资">自我投资</option>
+        <option value="事业资金">事业资金</option>
         <option value="固定費">固定費</option>
         <option value="特别支出">✦ 特别支出</option>
       </select>
@@ -411,8 +413,9 @@ function populateMonths() {
 }
 
 function updatePendingDot() {
-  const cur = new Date().toISOString().slice(0,7);
-  const count = entries.filter(e => e.date.startsWith(cur) && !e.rating && e.cat !== '特别支出').length;
+  const now = new Date();
+  const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const count = entries.filter(e => e.date.startsWith(cur) && !e.rating && e.cat !== '特别支出' && e.cat !== '固定費').length;
   document.getElementById('pending-dot').classList.toggle('show', count > 0);
 }
 
@@ -467,6 +470,8 @@ function deleteEntry(id) {
 function badgeHtml(e) {
   if (e.cat === '特别支出') return '<span class="badge badge-special">特别支出</span>';
   if (e.cat === '固定費') return '<span class="badge badge-special" style="background:#EEF0F5;color:#555">固定費</span>';
+  if (e.cat === '自我投资') return '<span class="badge badge-special" style="background:#EBF5EB;color:#3A6B3A">自我投资</span>';
+  if (e.cat === '事业资金') return '<span class="badge badge-special" style="background:#F5EDEB;color:#6B3A2A">事业资金</span>';
   if (e.rating === 'good') return '<span class="badge badge-good">✓ 值得</span>';
   if (e.rating === 'ok') return '<span class="badge badge-ok">△ 一般</span>';
   if (e.rating === 'bad') return '<span class="badge badge-bad">✕ 可以省</span>';
